@@ -32,7 +32,7 @@ initializeSocketIO(httpServer);
 
 // Middleware
 app.use(cors({
-  origin: ['https://resumeforge-nine.vercel.app/', 'http://localhost:5173'],  // Allow specific origins
+  origin: ['https://resumeforge-nine.vercel.app/', 'https://resumeforge-sidgureja7803s-projects.vercel.app/' ,'http://localhost:5173'],
   credentials: true,  // Allow credentials (cookies, etc.)
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS',],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
