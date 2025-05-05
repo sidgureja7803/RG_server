@@ -1,46 +1,75 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const templateSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    unique: true,
     trim: true
+  },
+  description: {
+    type: String,
+    required: true
+  },
+  thumbnail: {
+    type: String,
+    required: true
   },
   previewImage: {
     type: String,
     required: true
   },
-  sections: {
-    type: mongoose.Schema.Types.Mixed,
+  features: [{
+    type: String
+  }],
+  structure: {
+    type: Object,
     required: true
-  },
-  style: {
-    fontFamily: String,
-    colors: [String],
-    layout: String
   },
   category: {
     type: String,
-    enum: ['professional', 'creative', 'simple', 'modern', 'academic'],
-    default: 'professional'
+    enum: ['Modern', 'Professional', 'Creative', 'Simple', 'Academic'],
+    required: true
   },
-  isPublic: {
+  isActive: {
     type: Boolean,
     default: true
   },
-  creator: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+  isPremium: {
+    type: Boolean,
+    default: false
   },
-  usageCount: {
+  order: {
     type: Number,
     default: 0
+  },
+  metadata: {
+    colors: [{
+      name: String,
+      value: String
+    }],
+    fonts: [{
+      name: String,
+      value: String
+    }],
+    spacing: {
+      type: Object
+    }
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
-}, {
-  timestamps: true
+});
+
+templateSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
 });
 
 const Template = mongoose.model('Template', templateSchema);
 
-module.exports = Template; 
+export default Template; 

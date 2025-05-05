@@ -1,0 +1,55 @@
+JOHN DOE
+Software Engineer
+john.doe@example.com | (555) 123-4567 | linkedin.com/in/johndoe | github.com/johndoe
+
+SUMMARY
+Experienced software engineer with 5+ years of expertise in full-stack development, specializing in JavaScript frameworks (React, Node.js) and cloud technologies (AWS). Passionate about building scalable and maintainable web applications with a focus on user experience and performance.
+
+SKILLS
+Programming Languages: JavaScript (ES6+), TypeScript, Python, Java, SQL
+Frontend: React, Redux, HTML5, CSS3, SASS, Webpack, Jest
+Backend: Node.js, Express, MongoDB, PostgreSQL, REST APIs, GraphQL
+DevOps: Docker, Kubernetes, CI/CD, AWS (EC2, S3, Lambda), Terraform
+Other: Git, Agile/Scrum, TDD, Microservices Architecture
+
+WORK EXPERIENCE
+
+Senior Software Engineer | TechCorp Inc. | Jan 2021 - Present
+- Led a team of 5 developers in building a React-based dashboard that improved customer data visualization, resulting in a 30% increase in user engagement
+- Architected and implemented a scalable Node.js microservices infrastructure that reduced system downtime by 40%
+- Optimized database queries and implemented caching strategies, improving application performance by 50%
+- Mentored junior developers through code reviews and pair programming sessions
+
+Software Engineer | DataSolutions LLC | Mar 2018 - Dec 2020
+- Developed a responsive web application using React and Redux, serving 10,000+ daily active users
+- Designed and implemented RESTful APIs using Node.js and Express, processing 1M+ daily requests
+- Integrated third-party payment systems (Stripe, PayPal) that increased checkout completion rate by 25%
+- Implemented automated testing with Jest and Cypress, achieving 90% code coverage
+
+Junior Developer | WebStart Tech | Jun 2016 - Feb 2018
+- Built and maintained client websites using JavaScript, HTML, and CSS
+- Collaborated with designers to implement responsive UI components
+- Assisted in migrating legacy applications to modern JavaScript frameworks
+- Participated in daily standups and sprint planning in an Agile environment
+
+EDUCATION
+Bachelor of Science in Computer Science
+University of Technology | Graduated May 2016
+- GPA: 3.8/4.0
+- Relevant Coursework: Data Structures, Algorithms, Database Systems, Web Development
+
+PROJECTS
+E-commerce Platform (github.com/johndoe/ecommerce)
+- Built a full-stack e-commerce application using MERN stack (MongoDB, Express, React, Node.js)
+- Implemented features including user authentication, product search, shopping cart, and checkout
+- Utilized Redux for state management and Stripe for payment processing
+
+Weather Dashboard (github.com/johndoe/weather-app)
+- Developed a weather application using React that displays weather data from multiple APIs
+- Implemented geolocation services and data visualization with D3.js
+- Deployed on AWS using CI/CD pipeline with GitHub Actions
+
+CERTIFICATIONS
+- AWS Certified Developer - Associate
+- MongoDB Certified Developer
+- Certified Scrum Master 

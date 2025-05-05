@@ -1,17 +1,21 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 const userSchema = new mongoose.Schema({
-  username: {
+  firstName: {
     type: String,
-    required: true,
-    unique: true,
-    trim: true,
-    minlength: 3
+    required: [true, 'First name is required'],
+    trim: true
+  },
+  lastName: {
+    type: String,
+    required: [true, 'Last name is required'],
+    trim: true
   },
   email: {
     type: String,
-    required: true,
+    required: [true, 'Email is required'],
     unique: true,
     trim: true,
     lowercase: true,
@@ -19,67 +23,57 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true,
-    minlength: 6
+    required: [true, 'Password is required'],
+    minlength: [6, 'Password must be at least 6 characters']
   },
-  profilePicture: {
+  role: {
     type: String,
-    default: '/uploads/default-avatar.png'
+    enum: ['user', 'admin'],
+    default: 'user'
   },
-  isEmailVerified: {
+  isVerified: {
     type: Boolean,
     default: false
   },
-  otp: {
-    code: String,
-    expiresAt: Date
-  },
+  verificationToken: String,
+  verificationTokenExpires: Date,
+  resetPasswordToken: String,
+  resetPasswordExpires: Date,
   googleId: String,
-  githubId: String
-}, {
-  timestamps: true
+  githubId: String,
+  avatar: {
+    type: String,
+    default: ''
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
 });
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) {
-    return next();
-  }
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
     next();
-  } catch (error) {
-    next(error);
   }
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
 });
 
-// Compare password method
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  try {
-    return await bcrypt.compare(candidatePassword, this.password);
-  } catch (error) {
-    throw error;
-  }
+// Sign JWT and return
+userSchema.methods.getSignedJwtToken = function() {
+  return jwt.sign(
+    { id: this._id },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRE }
+  );
 };
 
-// Generate OTP method
-userSchema.methods.generateOTP = function() {
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  this.otp = {
-    code: otp,
-    expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
-  };
-  return otp;
-};
-
-// Verify OTP method
-userSchema.methods.verifyOTP = function(code) {
-  return this.otp &&
-         this.otp.code === code &&
-         this.otp.expiresAt > new Date();
+// Match user entered password to hashed password in database
+userSchema.methods.matchPassword = async function(enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
 };
 
 const User = mongoose.model('User', userSchema);
 
-module.exports = User; 
+export default User; 

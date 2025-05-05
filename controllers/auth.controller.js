@@ -1,6 +1,6 @@
-const User = require('../models/user.model');
-const jwt = require('jsonwebtoken');
-const { sendOTP } = require('../config/nodemailer');
+import User from '../models/user.model.js';
+import jwt from 'jsonwebtoken';
+import { sendOTP } from '../config/nodemailer.js';
 
 // Generate JWT token
 const generateToken = (id) => {
@@ -12,7 +12,7 @@ const generateToken = (id) => {
 // @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
-const register = async (req, res) => {
+export const register = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
@@ -60,7 +60,7 @@ const register = async (req, res) => {
 // @desc    Verify email with OTP
 // @route   POST /api/auth/verify-email
 // @access  Public
-const verifyEmail = async (req, res) => {
+export const verifyEmail = async (req, res) => {
   try {
     const { userId, otp } = req.body;
 
@@ -99,7 +99,7 @@ const verifyEmail = async (req, res) => {
 // @desc    Resend OTP
 // @route   POST /api/auth/resend-otp
 // @access  Public
-const resendOTP = async (req, res) => {
+export const resendOTP = async (req, res) => {
   try {
     const { userId } = req.body;
 
@@ -132,7 +132,7 @@ const resendOTP = async (req, res) => {
 // @desc    Login user & get token
 // @route   POST /api/auth/login
 // @access  Public
-const login = async (req, res) => {
+export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -173,7 +173,7 @@ const login = async (req, res) => {
 // @desc    Get current user profile
 // @route   GET /api/auth/me
 // @access  Private
-const getCurrentUser = async (req, res) => {
+export const getCurrentUser = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password -otp');
     
@@ -193,7 +193,7 @@ const getCurrentUser = async (req, res) => {
 // @desc    Google OAuth callback
 // @route   GET /api/auth/google/callback
 // @access  Public
-const googleCallback = async (req, res) => {
+export const googleCallback = async (req, res) => {
   try {
     const { email, name, picture, sub: googleId } = req.user._json;
     
@@ -214,16 +214,18 @@ const googleCallback = async (req, res) => {
       await user.save();
     }
 
-    res.redirect(`${process.env.CLIENT_URL}/oauth-callback?token=${generateToken(user._id)}`);
+    const token = generateToken(user._id);
+    res.redirect(`${process.env.CLIENT_URL}/oauth/callback?provider=google&token=${token}`);
   } catch (error) {
-    res.redirect(`${process.env.CLIENT_URL}/login?error=OAuth failed`);
+    console.error('Google OAuth error:', error);
+    res.redirect(`${process.env.CLIENT_URL}/login?error=Google OAuth failed`);
   }
 };
 
 // @desc    GitHub OAuth callback
 // @route   GET /api/auth/github/callback
 // @access  Public
-const githubCallback = async (req, res) => {
+export const githubCallback = async (req, res) => {
   try {
     const { email, login: username, avatar_url: picture, id: githubId } = req.user._json;
     
@@ -244,18 +246,10 @@ const githubCallback = async (req, res) => {
       await user.save();
     }
 
-    res.redirect(`${process.env.CLIENT_URL}/oauth-callback?token=${generateToken(user._id)}`);
+    const token = generateToken(user._id);
+    res.redirect(`${process.env.CLIENT_URL}/oauth/callback?provider=github&token=${token}`);
   } catch (error) {
-    res.redirect(`${process.env.CLIENT_URL}/login?error=OAuth failed`);
+    console.error('GitHub OAuth error:', error);
+    res.redirect(`${process.env.CLIENT_URL}/login?error=GitHub OAuth failed`);
   }
-};
-
-module.exports = {
-  register,
-  login,
-  getCurrentUser,
-  verifyEmail,
-  resendOTP,
-  googleCallback,
-  githubCallback
 }; 

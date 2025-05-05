@@ -1,11 +1,11 @@
-const express = require('express');
-const { 
+import express from 'express';
+import { 
   updateProfile, 
   uploadProfilePicture, 
   searchUsers 
-} = require('../controllers/user.controller');
-const { authenticate } = require('../middleware/auth.middleware');
-const upload = require('../middleware/upload.middleware');
+} from '../controllers/user.controller.js';
+import { authenticate } from '../middleware/auth.middleware.js';
+import upload from '../middleware/upload.middleware.js';
 
 const router = express.Router();
 
@@ -27,4 +27,4 @@ router.post('/profile/picture', upload.single('profilePicture'), uploadProfilePi
 // @access  Private
 router.get('/search', searchUsers);
 
-module.exports = router; 
+export default router; 

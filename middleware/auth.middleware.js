@@ -1,8 +1,8 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/user.model');
+import jwt from 'jsonwebtoken';
+import User from '../models/user.model.js';
 
 // Middleware to authenticate JWT token
-const authenticate = async (req, res, next) => {
+export const authenticate = async (req, res, next) => {
   try {
     // Get token from header
     const token = req.header('Authorization')?.replace('Bearer ', '');
@@ -14,14 +14,14 @@ const authenticate = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Find user by id
+    // Get user from database
     const user = await User.findById(decoded.id).select('-password');
     
     if (!user) {
-      return res.status(401).json({ message: 'Token is not valid' });
+      return res.status(401).json({ message: 'User not found' });
     }
 
-    // Set user in request
+    // Add user to request
     req.user = user;
     next();
   } catch (error) {
@@ -35,4 +35,21 @@ const authenticate = async (req, res, next) => {
   }
 };
 
-module.exports = { authenticate }; 
+// Rename authenticate to authenticateToken for job routes
+export const authenticateToken = authenticate;
+
+export const isAdmin = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin only.' });
+    }
+
+    next();
+  } catch (error) {
+    res.status(500).json({ message: 'Server error checking admin status' });
+  }
+}; 

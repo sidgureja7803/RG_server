@@ -1,0 +1,50 @@
+Senior Frontend Developer
+
+About Us:
+TechInnovate is a leading tech company building innovative solutions in the e-commerce space. We're looking for a passionate and experienced Senior Frontend Developer to join our growing team.
+
+Job Description:
+We are seeking a talented Senior Frontend Developer to create exceptional user experiences for our customers. The ideal candidate will have strong expertise in modern JavaScript frameworks, with a focus on React, and a passion for building responsive, accessible, and performant web applications.
+
+Responsibilities:
+• Design and develop high-quality, responsive web applications using React and related technologies
+• Work closely with UX/UI designers to implement intuitive user interfaces
+• Collaborate with backend developers to integrate frontend components with server-side logic
+• Develop and maintain component libraries and design systems
+• Optimize applications for maximum speed and scalability
+• Implement automated testing to ensure code quality and reliability
+• Stay up-to-date with emerging trends and technologies in frontend development
+• Mentor junior developers and participate in code reviews
+• Contribute to technical architecture decisions
+
+Requirements:
+• 5+ years of professional experience in frontend development
+• Strong proficiency in JavaScript (ES6+), TypeScript, HTML5, and CSS3
+• Expert knowledge of React, Redux, and React ecosystem
+• Experience with modern frontend build tools (Webpack, Babel, etc.)
+• Familiarity with RESTful APIs and GraphQL
+• Strong understanding of responsive design principles
+• Experience with automated testing frameworks (Jest, React Testing Library, Cypress)
+• Knowledge of web performance optimization techniques
+• Experience with version control systems (Git)
+• Excellent problem-solving and communication skills
+• BS/MS in Computer Science or related field (or equivalent experience)
+
+Nice to Have:
+• Experience with Node.js and Express
+• Familiarity with AWS or other cloud platforms
+• Knowledge of CI/CD pipelines
+• Experience with containerization (Docker, Kubernetes)
+• Contributions to open-source projects
+
+Benefits:
+• Competitive salary and equity package
+• Comprehensive health, dental, and vision insurance
+• 401(k) matching
+• Flexible work arrangements
+• Generous PTO policy
+• Professional development budget
+• Modern office in downtown tech hub
+• Team events and activities
+
+TechInnovate is an equal opportunity employer committed to building a diverse and inclusive workplace. We encourage applications from people of all backgrounds. 

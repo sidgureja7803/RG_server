@@ -1,10 +1,10 @@
-const User = require('../models/user.model');
-const bcrypt = require('bcryptjs');
+import User from '../models/user.model.js';
+import bcrypt from 'bcryptjs';
 
 // @desc    Update user profile
 // @route   PUT /api/users/profile
 // @access  Private
-const updateProfile = async (req, res) => {
+export const updateProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     
@@ -41,7 +41,7 @@ const updateProfile = async (req, res) => {
 // @desc    Upload profile picture
 // @route   POST /api/users/profile/picture
 // @access  Private
-const uploadProfilePicture = async (req, res) => {
+export const uploadProfilePicture = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     
@@ -73,7 +73,7 @@ const uploadProfilePicture = async (req, res) => {
 // @desc    Search users (for collaboration)
 // @route   GET /api/users/search
 // @access  Private
-const searchUsers = async (req, res) => {
+export const searchUsers = async (req, res) => {
   try {
     const { query } = req.query;
     
@@ -102,10 +102,4 @@ const searchUsers = async (req, res) => {
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
-};
-
-module.exports = {
-  updateProfile,
-  uploadProfilePicture,
-  searchUsers
 }; 

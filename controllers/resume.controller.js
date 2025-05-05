@@ -1,10 +1,11 @@
-const Resume = require('../models/resume.model');
-const mongoose = require('mongoose');
+import Resume from '../models/resume.model.js';
+import mongoose from 'mongoose';
+import { generatePDF, resumeToHTML } from '../services/pdf.service.js';
 
 // @desc    Create a new resume
 // @route   POST /api/resumes
 // @access  Private
-const createResume = async (req, res) => {
+export const createResume = async (req, res) => {
   try {
     const { name, template, sections, canvasSize, pageSettings } = req.body;
     
@@ -29,7 +30,7 @@ const createResume = async (req, res) => {
 // @desc    Get all resumes for current user
 // @route   GET /api/resumes
 // @access  Private
-const getResumes = async (req, res) => {
+export const getResumes = async (req, res) => {
   try {
     const resumes = await Resume.find({ 
       $or: [
@@ -50,7 +51,7 @@ const getResumes = async (req, res) => {
 // @desc    Get a single resume by ID
 // @route   GET /api/resumes/:id
 // @access  Private
-const getResumeById = async (req, res) => {
+export const getResumeById = async (req, res) => {
   try {
     const resume = await Resume.findById(req.params.id)
       .populate('user', 'username email profilePicture')
@@ -78,7 +79,7 @@ const getResumeById = async (req, res) => {
 // @desc    Update a resume
 // @route   PUT /api/resumes/:id
 // @access  Private
-const updateResume = async (req, res) => {
+export const updateResume = async (req, res) => {
   try {
     const { name, sections, canvasSize, pageSettings } = req.body;
     
@@ -114,7 +115,7 @@ const updateResume = async (req, res) => {
 // @desc    Delete a resume
 // @route   DELETE /api/resumes/:id
 // @access  Private
-const deleteResume = async (req, res) => {
+export const deleteResume = async (req, res) => {
   try {
     const resume = await Resume.findById(req.params.id);
     
@@ -140,7 +141,7 @@ const deleteResume = async (req, res) => {
 // @desc    Add a collaborator to a resume
 // @route   POST /api/resumes/:id/collaborators
 // @access  Private
-const addCollaborator = async (req, res) => {
+export const addCollaborator = async (req, res) => {
   try {
     const { collaboratorId } = req.body;
     
@@ -175,7 +176,7 @@ const addCollaborator = async (req, res) => {
 // @desc    Remove a collaborator from a resume
 // @route   DELETE /api/resumes/:id/collaborators/:collaboratorId
 // @access  Private
-const removeCollaborator = async (req, res) => {
+export const removeCollaborator = async (req, res) => {
   try {
     const resume = await Resume.findById(req.params.id);
     
@@ -203,12 +204,64 @@ const removeCollaborator = async (req, res) => {
   }
 };
 
-module.exports = {
-  createResume,
-  getResumes,
-  getResumeById,
-  updateResume,
-  deleteResume,
-  addCollaborator,
-  removeCollaborator
+// @desc    Generate a PDF for a resume
+// @route   GET /api/resumes/:id/pdf
+// @access  Private
+export const generateResumePDF = async (req, res) => {
+  try {
+    const resume = await Resume.findById(req.params.id);
+    
+    if (!resume) {
+      return res.status(404).json({ message: 'Resume not found' });
+    }
+
+    // Check if user is authorized to view this resume
+    if (resume.user.toString() !== req.user._id.toString() && 
+        !resume.collaborators.includes(req.user._id)) {
+      return res.status(403).json({ message: 'Not authorized to access this resume' });
+    }
+
+    const pdf = await generatePDF(resume);
+
+    // Set headers for PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${resume.name.replace(/\s+/g, '_')}.pdf"`);
+    
+    res.send(pdf);
+  } catch (error) {
+    res.status(500).json({
+      message: 'Error generating PDF',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// @desc    Preview a PDF for a resume
+// @route   GET /api/resumes/:id/preview
+// @access  Private
+export const previewResumePDF = async (req, res) => {
+  try {
+    const resume = await Resume.findById(req.params.id);
+    
+    if (!resume) {
+      return res.status(404).json({ message: 'Resume not found' });
+    }
+
+    // Check if user is authorized to view this resume
+    if (resume.user.toString() !== req.user._id.toString() && 
+        !resume.collaborators.includes(req.user._id)) {
+      return res.status(403).json({ message: 'Not authorized to access this resume' });
+    }
+
+    const html = await resumeToHTML(resume);
+    
+    // Set headers for HTML response
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  } catch (error) {
+    res.status(500).json({
+      message: 'Error generating preview',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
 }; 

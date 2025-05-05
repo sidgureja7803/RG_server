@@ -1,17 +1,17 @@
-const nodemailer = require('nodemailer');
+import nodemailer from 'nodemailer';
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: process.env.EMAIL_SERVICE || 'gmail',
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD
   }
 });
 
-const sendOTP = async (email, otp) => {
+export const sendOTP = async (email, otp) => {
   try {
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: email,
       subject: 'Email Verification OTP',
       html: `
@@ -29,6 +29,4 @@ const sendOTP = async (email, otp) => {
     console.error('Error sending OTP:', error);
     return false;
   }
-};
-
-module.exports = { sendOTP }; 
+}; 

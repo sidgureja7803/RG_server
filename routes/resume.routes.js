@@ -1,19 +1,29 @@
-const express = require('express');
-const { 
+import express from 'express';
+import { 
   createResume, 
   getResumes, 
   getResumeById, 
   updateResume, 
   deleteResume,
   addCollaborator,
-  removeCollaborator
-} = require('../controllers/resume.controller');
-const { authenticate } = require('../middleware/auth.middleware');
+  removeCollaborator,
+  generateResumePDF,
+  previewResumePDF
+} from '../controllers/resume.controller.js';
+import { authenticate } from '../middleware/auth.middleware.js';
+import versionRoutes from './version.routes.js';
+import commentRoutes from './comment.routes.js';
 
 const router = express.Router();
 
 // Protect all resume routes
 router.use(authenticate);
+
+// Mount version routes
+router.use('/:resumeId/versions', versionRoutes);
+
+// Mount comment routes
+router.use('/:resumeId/comments', commentRoutes);
 
 // @route   POST /api/resumes
 // @desc    Create a new resume
@@ -40,6 +50,16 @@ router.put('/:id', updateResume);
 // @access  Private
 router.delete('/:id', deleteResume);
 
+// @route   GET /api/resumes/:id/pdf
+// @desc    Generate a PDF for a resume
+// @access  Private
+router.get('/:id/pdf', generateResumePDF);
+
+// @route   GET /api/resumes/:id/preview
+// @desc    Preview a PDF for a resume
+// @access  Private
+router.get('/:id/preview', previewResumePDF);
+
 // @route   POST /api/resumes/:id/collaborators
 // @desc    Add a collaborator to a resume
 // @access  Private
@@ -50,4 +70,4 @@ router.post('/:id/collaborators', addCollaborator);
 // @access  Private
 router.delete('/:id/collaborators/:collaboratorId', removeCollaborator);
 
-module.exports = router; 
+export default router; 
