@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 
 const userSchema = new mongoose.Schema({
   firstName: {
@@ -34,6 +35,24 @@ const userSchema = new mongoose.Schema({
   isVerified: {
     type: Boolean,
     default: false
+  },
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  username: {
+    type: String,
+    trim: true
+  },
+  profilePicture: {
+    type: String,
+    default: ''
+  },
+  otp: {
+    type: String
+  },
+  otpExpiry: {
+    type: Date
   },
   verificationToken: String,
   verificationTokenExpires: Date,
@@ -72,6 +91,25 @@ userSchema.methods.getSignedJwtToken = function() {
 // Match user entered password to hashed password in database
 userSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
+};
+
+// Generate OTP for email verification
+userSchema.methods.generateOTP = function() {
+  // Generate a 6 digit OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  
+  // Hash OTP
+  this.otp = otp;
+  
+  // Set expiry time - 10 minutes
+  this.otpExpiry = Date.now() + 10 * 60 * 1000;
+  
+  return otp;
+};
+
+// Verify OTP
+userSchema.methods.verifyOTP = function(otp) {
+  return this.otp === otp && this.otpExpiry > Date.now();
 };
 
 const User = mongoose.model('User', userSchema);

@@ -70,8 +70,8 @@ app.get('/', (req, res) => {
 // Apply error handler
 app.use(errorHandler);
 
-// Start server
 const PORT = process.env.PORT;
+
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

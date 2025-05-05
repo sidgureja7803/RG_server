@@ -140,7 +140,7 @@ export const login = async (req, res) => {
     const user = await User.findOne({ email });
     
     // Check if user exists and password matches
-    if (user && (await user.comparePassword(password))) {
+    if (user && (await user.matchPassword(password))) {
       if (!user.isEmailVerified) {
         const otp = user.generateOTP();
         await user.save();
