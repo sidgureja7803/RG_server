@@ -32,8 +32,10 @@ initializeSocketIO(httpServer);
 
 // Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
-  credentials: true,
+  origin: ['https://resumeforge-nine.vercel.app/', 'http://localhost:5173'],  // Allow specific origins
+  credentials: true,  // Allow credentials (cookies, etc.)
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS',],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
 
 
@@ -50,6 +52,8 @@ app.use('/uploads', express.static('uploads'));
 
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
+
+
 const __dirname = path.dirname(__filename);
 
 // Serve static files from public directory
