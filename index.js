@@ -14,6 +14,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import errorHandler from './middleware/error.middleware.js';
 import routes from './routes/index.js';
+import mongoSanitize from 'express-mongo-sanitize';
+import xss from 'xss-clean';
+import rateLimit from 'express-rate-limit';
 
 // Load environment variables
 dotenv.config();
@@ -24,7 +27,7 @@ const httpServer = createServer(app);
 
 // Connect to MongoDB
 connectDatabase()
-  .then(() => console.log('Database connection initialized'))
+  .then(() => console.log('Database connected successfully'))
   .catch((err) => console.error('Database connection error:', err));
 
 // Initialize Socket.IO for real-time collaboration
@@ -32,12 +35,11 @@ initializeSocketIO(httpServer);
 
 // Middleware
 app.use(cors({
-  origin: ['https://resumeforge-nine.vercel.app/', 'http://localhost:5173'],  // Allow specific origins
-  credentials: true,  // Allow credentials (cookies, etc.)
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS',],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+  origin: process.env.CLIENT_URL || 'https://resumeforge-nine.vercel.app',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
-
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -47,12 +49,17 @@ app.use(compression());
 app.use(passport.initialize());
 app.use(rateLimiterMiddleware);
 
+// Sanitize data
+app.use(mongoSanitize());
+
+// Prevent XSS attacks
+app.use(xss());
+
 // Uploads directory
 app.use('/uploads', express.static('uploads'));
 
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
-
 
 const __dirname = path.dirname(__filename);
 
@@ -74,10 +81,17 @@ app.get('/', (req, res) => {
 // Apply error handler
 app.use(errorHandler);
 
-const PORT = process.env.PORT;
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
+app.use('/api', limiter);
+
+const PORT = process.env.PORT || 5000;
 
 httpServer.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });
 
 export default app;

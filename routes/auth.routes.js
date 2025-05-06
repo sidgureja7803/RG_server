@@ -7,7 +7,9 @@ import {
   verifyEmail, 
   resendOTP,
   googleCallback,
-  githubCallback
+  githubCallback,
+  requestPasswordReset,
+  resetPassword
 } from '../controllers/auth.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 
@@ -37,6 +39,16 @@ router.post('/login', login);
 // @desc    Get current user profile
 // @access  Private
 router.get('/me', authenticate, getCurrentUser);
+
+// @route   POST /api/auth/reset-password
+// @desc    Request password reset
+// @access  Public
+router.post('/reset-password', requestPasswordReset);
+
+// @route   POST /api/auth/reset-password/:resetToken
+// @desc    Reset password with token
+// @access  Public
+router.post('/reset-password/:resetToken', resetPassword);
 
 // @route   GET /api/auth/google
 // @desc    Google OAuth

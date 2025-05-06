@@ -264,4 +264,85 @@ export const previewResumePDF = async (req, res) => {
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
+};
+
+/**
+ * Convert markdown resume to HTML
+ * @route POST /api/resumes/convert-markdown
+ * @access Public
+ */
+export const convertMarkdownToHTML = async (req, res) => {
+  try {
+    const { markdown } = req.body;
+    
+    if (!markdown) {
+      return res.status(400).json({ message: 'Markdown content is required' });
+    }
+    
+    // Use a markdown to HTML converter
+    const html = await markdownToHTML(markdown);
+    
+    res.json({ html });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Error converting markdown to HTML',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+/**
+ * Export resume as markdown
+ * @route GET /api/resumes/:id/export-markdown
+ * @access Private
+ */
+export const exportResumeMarkdown = async (req, res) => {
+  try {
+    const resume = await Resume.findById(req.params.id);
+    
+    if (!resume) {
+      return res.status(404).json({ message: 'Resume not found' });
+    }
+
+    // Check if user is authorized to access this resume
+    if (resume.user.toString() !== req.user._id.toString() && 
+        !resume.collaborators.includes(req.user._id)) {
+      return res.status(403).json({ message: 'Not authorized to access this resume' });
+    }
+    
+    // If resume is in markdown format, return it directly
+    if (resume.format === 'markdown') {
+      return res.json({ markdown: resume.content });
+    }
+    
+    // If resume is in another format, convert it to markdown
+    // This is a placeholder for actual conversion logic
+    const markdown = resume.content; // Simplified conversion
+    
+    res.json({ markdown });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Error exporting resume as markdown',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+/**
+ * Helper function: Convert markdown to HTML
+ * For actual implementation, you might want to use a library like marked
+ */
+const markdownToHTML = async (markdown) => {
+  // Import here to avoid issues if not all users need this dependency
+  const marked = (await import('marked')).marked;
+  
+  // Configure marked for safe HTML
+  marked.setOptions({
+    headerIds: true,
+    mangle: false,
+    sanitize: false, // Let users have full control over their HTML
+    breaks: true,
+  });
+  
+  return marked(markdown);
 }; 

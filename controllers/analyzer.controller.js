@@ -43,54 +43,240 @@ const extractTextFromFile = async (file) => {
   }
 };
 
+/**
+ * Calculate ATS compatibility score for a resume
+ * @param {string} resumeText - The resume text 
+ * @param {Object} analysisResult - Previous analysis results if available
+ * @returns {Object} ATS score analysis
+ */
+const calculateATSCompatibility = (resumeText, analysisResult = {}) => {
+  // Base score starts at 65%
+  let baseScore = 65;
+  
+  // Initialize subsections
+  const scoring = {
+    formatting: 0,
+    keywords: 0,
+    readability: 0,
+    structure: 0
+  };
+  
+  // Check formatting
+  // 1. File format is already handled since we can parse it
+  scoring.formatting += 20;
+  
+  // 2. Check for common formatting issues
+  const hasWeirdCharacters = /[^\x00-\x7F]+/.test(resumeText);
+  if (!hasWeirdCharacters) scoring.formatting += 20;
+  
+  // 3. Check for appropriate length (not too short, not too long)
+  const wordCount = resumeText.split(/\s+/).length;
+  if (wordCount > 300 && wordCount < 1000) scoring.formatting += 20;
+  else if (wordCount > 200) scoring.formatting += 10;
+  
+  // 4. Check for common resume sections
+  const sections = [
+    'experience', 'education', 'skills', 'summary', 
+    'objective', 'projects', 'certifications'
+  ];
+  
+  let sectionCount = 0;
+  for (const section of sections) {
+    if (resumeText.toLowerCase().includes(section)) {
+      sectionCount++;
+    }
+  }
+  
+  if (sectionCount >= 4) scoring.formatting += 20;
+  else if (sectionCount >= 2) scoring.formatting += 10;
+  
+  // 5. Check for contact information
+  const hasEmail = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(resumeText);
+  const hasPhone = /(\+\d{1,3}[ -]?)?\(?\d{3}\)?[ -]?\d{3}[ -]?\d{4}/.test(resumeText);
+  
+  if (hasEmail) scoring.formatting += 10;
+  if (hasPhone) scoring.formatting += 10;
+  
+  // Keywords score - use match score if available or estimate
+  if (analysisResult.matchScore) {
+    scoring.keywords = analysisResult.matchScore;
+  } else {
+    // Simple keyword density calculation
+    const commonJobKeywords = [
+      'experience', 'skills', 'project', 'developed', 'managed', 'led', 'team',
+      'collaborate', 'implement', 'create', 'design', 'analyze', 'solve', 'responsible',
+      'achieve', 'improve', 'increase', 'decrease', 'percent', 'budget', 'client',
+      'customer', 'timeline', 'deliver', 'success', 'goal', 'metric'
+    ];
+    
+    let keywordCount = 0;
+    for (const keyword of commonJobKeywords) {
+      const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
+      const matches = resumeText.match(regex);
+      if (matches) keywordCount += matches.length;
+    }
+    
+    const density = keywordCount / wordCount;
+    scoring.keywords = Math.min(Math.round(density * 1000), 100);
+  }
+  
+  // Readability score
+  // Count sentences
+  const sentences = resumeText.split(/[.!?]+/).filter(Boolean);
+  const avgWordsPerSentence = wordCount / Math.max(sentences.length, 1);
+  
+  if (avgWordsPerSentence >= 10 && avgWordsPerSentence <= 20) {
+    scoring.readability = 80;
+  } else if (avgWordsPerSentence > 20 && avgWordsPerSentence <= 25) {
+    scoring.readability = 70;
+  } else if (avgWordsPerSentence > 25) {
+    scoring.readability = 60;
+  } else {
+    scoring.readability = 75;
+  }
+  
+  // Structure score - check for bullet points, consistent formatting
+  const bulletPoints = (resumeText.match(/•|-|\*/g) || []).length;
+  const hasConsistentFormatting = /\n[A-Z][^a-z]*\n/.test(resumeText); // Headings in all caps
+  
+  if (bulletPoints > 10) scoring.structure += 40;
+  else if (bulletPoints > 5) scoring.structure += 30;
+  else scoring.structure += 20;
+  
+  if (hasConsistentFormatting) scoring.structure += 40;
+  else scoring.structure += 20;
+  
+  // Calculate final score
+  const atsScore = Math.round(
+    scoring.formatting * 0.3 + 
+    scoring.keywords * 0.4 + 
+    scoring.readability * 0.15 + 
+    scoring.structure * 0.15
+  );
+  
+  return {
+    score: atsScore,
+    details: scoring
+  };
+};
+
 export const analyzeMatch = async (req, res) => {
   try {
-    if (!req.file || !req.body.jobDescription) {
-      return res.status(400).json({ message: 'Resume file and job description are required' });
+    // Validate input
+    if (!req.file) {
+      return res.status(400).json({ message: 'Resume file is required' });
     }
 
-    const resumeText = await extractTextFromFile(req.file);
+    if (!req.body.jobDescription || req.body.jobDescription.trim().length < 10) {
+      return res.status(400).json({ message: 'A valid job description is required (minimum 10 characters)' });
+    }
+
+    // Extract text from the resume file
+    let resumeText;
+    try {
+      resumeText = await extractTextFromFile(req.file);
+      
+      if (!resumeText || resumeText.trim().length < 50) {
+        return res.status(400).json({ message: 'Could not extract sufficient text from the resume. Please ensure the file is not corrupted or empty.' });
+      }
+    } catch (extractError) {
+      console.error('Error extracting text from file:', extractError);
+      return res.status(422).json({ message: 'Could not process the resume file. Please try a different file format.' });
+    }
+
     const jobDescription = req.body.jobDescription;
 
-    // Initialize Gemini AI model
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    // Ensure API key is available
+    if (!config.geminiApiKey) {
+      console.error('Missing Gemini API key');
+      return res.status(500).json({ message: 'Server configuration error. Please try again later.' });
+    }
 
-    // Prepare the prompt for analysis
-    const prompt = `
-      Analyze the following resume and job description for compatibility.
-      Please provide:
-      1. An overall match score (0-100)
-      2. List of matching skills found in both
-      3. List of required skills from job description missing in resume
-      4. Specific recommendations for improving the match
+    try {
+      // Initialize Gemini AI model
+      const genAI = new GoogleGenerativeAI(config.geminiApiKey);
+      const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+
+      // Prepare the prompt for analysis
+      const prompt = `
+        Analyze the following resume and job description for compatibility.
+        Please provide:
+        1. An overall match score (0-100)
+        2. List of matching skills found in both
+        3. List of required skills from job description missing in resume
+        4. Specific recommendations for improving the match
+        
+        Resume:
+        ${resumeText}
+        
+        Job Description:
+        ${jobDescription}
+        
+        Format the response as a JSON object with the following structure:
+        {
+          "matchScore": number,
+          "matchedSkills": string[],
+          "missingSkills": string[],
+          "recommendations": string
+        }
+      `;
+
+      // Generate analysis using Gemini AI
+      const result = await model.generateContent(prompt);
+      const response = result.response;
+      const analysisText = response.text();
       
-      Resume:
-      ${resumeText}
-      
-      Job Description:
-      ${jobDescription}
-      
-      Format the response as a JSON object with the following structure:
-      {
-        "matchScore": number,
-        "matchedSkills": string[],
-        "missingSkills": string[],
-        "recommendations": string
+      // Parse the JSON response
+      let analysis;
+      try {
+        analysis = JSON.parse(analysisText);
+        
+        // Validate the required fields
+        if (typeof analysis.matchScore !== 'number') {
+          throw new Error('Invalid matchScore format');
+        }
+        
+        if (!Array.isArray(analysis.matchedSkills)) {
+          analysis.matchedSkills = [];
+        }
+        
+        if (!Array.isArray(analysis.missingSkills)) {
+          analysis.missingSkills = [];
+        }
+        
+        if (typeof analysis.recommendations !== 'string') {
+          analysis.recommendations = 'No specific recommendations available.';
+        }
+      } catch (parseError) {
+        console.error('Error parsing AI response:', parseError, analysisText);
+        // Fallback to a default response structure
+        analysis = {
+          matchScore: 50,
+          matchedSkills: [],
+          missingSkills: [],
+          recommendations: 'Sorry, we encountered an issue processing the analysis. Here are some general tips: Tailor your resume to match the job description, highlight relevant skills, and quantify your achievements.'
+        };
       }
-    `;
+      
+      // Calculate ATS score
+      const atsAnalysis = calculateATSCompatibility(resumeText, analysis);
+      analysis.atsScore = atsAnalysis.score;
+      analysis.atsDetails = atsAnalysis.details;
 
-    // Generate analysis using Gemini AI
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const analysisText = response.text();
-    
-    // Parse the JSON response
-    const analysis = JSON.parse(analysisText);
-
-    res.json(analysis);
+      res.json(analysis);
+    } catch (aiError) {
+      console.error('AI analysis error:', aiError);
+      res.status(500).json({ 
+        message: 'Error analyzing resume with AI service. Please try again later.',
+        error: process.env.NODE_ENV === 'development' ? aiError.message : undefined
+      });
+    }
   } catch (error) {
     console.error('Analysis error:', error);
-    res.status(500).json({ message: 'Failed to analyze resume match' });
+    res.status(500).json({ 
+      message: 'Failed to analyze resume match',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 

@@ -8,7 +8,9 @@ import {
   addCollaborator,
   removeCollaborator,
   generateResumePDF,
-  previewResumePDF
+  previewResumePDF,
+  convertMarkdownToHTML,
+  exportResumeMarkdown
 } from '../controllers/resume.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import versionRoutes from './version.routes.js';
@@ -69,5 +71,15 @@ router.post('/:id/collaborators', addCollaborator);
 // @desc    Remove a collaborator from a resume
 // @access  Private
 router.delete('/:id/collaborators/:collaboratorId', removeCollaborator);
+
+// @route   POST /api/resumes/convert-markdown
+// @desc    Convert markdown to HTML
+// @access  Public
+router.post('/convert-markdown', convertMarkdownToHTML);
+
+// @route   GET /api/resumes/:id/export-markdown
+// @desc    Export resume as markdown
+// @access  Private
+router.get('/:id/export-markdown', exportResumeMarkdown);
 
 export default router; 

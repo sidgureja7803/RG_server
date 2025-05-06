@@ -5,6 +5,9 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Get the server URL from environment variable with fallback
+const SERVER_URL = process.env.SERVER_URL || 'http://localhost:5000';
+
 // Google OAuth Strategy
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   passport.use(
@@ -12,7 +15,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       {
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: `${process.env.SERVER_URL || 'http://localhost:3001'}/api/auth/google/callback`,
+        callbackURL: `${SERVER_URL}/api/auth/google/callback`,
         scope: ['profile', 'email']
       },
       (accessToken, refreshToken, profile, done) => {
@@ -32,7 +35,7 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
       {
         clientID: process.env.GITHUB_CLIENT_ID,
         clientSecret: process.env.GITHUB_CLIENT_SECRET,
-        callbackURL: `${process.env.SERVER_URL || 'http://localhost:3001'}/api/auth/github/callback`,
+        callbackURL: `${SERVER_URL}/api/auth/github/callback`,
         scope: ['user:email']
       },
       (accessToken, refreshToken, profile, done) => {
