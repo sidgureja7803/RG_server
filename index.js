@@ -18,6 +18,10 @@ import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss-clean';
 import rateLimit from 'express-rate-limit';
 import mongoose from 'mongoose';
+import latexRoutes from './routes/latexRoutes.js';
+import { initializeSocketIO as socketIOInit } from './services/socketService.js';
+import atsRoutes from './routes/atsRoutes.js';
+import templateRoutes from './routes/templateRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -80,6 +84,9 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api', routes);
+app.use('/api/latex', latexRoutes);
+app.use('/api/ats', atsRoutes);
+app.use('/api/templates', templateRoutes);
 
 // Error handling
 app.use(errorHandler);
@@ -104,7 +111,7 @@ const startServer = async () => {
     });
 
     // Initialize Socket.IO
-    initializeSocketIO(httpServer);
+    const io = initializeSocketIO(httpServer);
 
     // Handle server errors
     server.on('error', (error) => {
