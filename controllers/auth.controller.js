@@ -2,10 +2,11 @@ import User from '../models/user.model.js';
 import jwt from 'jsonwebtoken';
 import { sendOTP } from '../config/nodemailer.js';
 import crypto from 'crypto';
+import asyncHandler from 'express-async-handler';
 
 // Generate JWT token
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+  return jwt.sign({ id }, process.env.JWT_SECRET || 'fallback_secret', {
     expiresIn: '30d'
   });
 };
@@ -133,36 +134,30 @@ export const resendOTP = async (req, res) => {
 // @desc    Login user & get token
 // @route   POST /api/auth/login
 // @access  Public
-export const login = async (req, res) => {
+export const login = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+
+  // Validate input
+  if (!email || !password) {
+    res.status(400);
+    throw new Error('Please provide both email and password');
+  }
+
   try {
-    const { email, password } = req.body;
-
-    // Validate input
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide both email and password'
-      });
-    }
-
     // Find user by email
     const user = await User.findOne({ email }).select('+password');
     
     // Check if user exists
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'No account found with this email address'
-      });
+      res.status(401);
+      throw new Error('Invalid email or password');
     }
 
     // Check if password matches
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid password'
-      });
+      res.status(401);
+      throw new Error('Invalid email or password');
     }
 
     // Check if email is verified
@@ -172,19 +167,11 @@ export const login = async (req, res) => {
       await user.save();
       
       // Send OTP
-      try {
-        await sendOTP(user.email, otp);
-      } catch (error) {
-        console.error('Failed to send OTP:', error);
-        return res.status(500).json({
-          success: false,
-          message: 'Failed to send verification email. Please try again.'
-        });
-      }
+      await sendOTP(user.email, otp);
       
       return res.status(403).json({
         success: false,
-        message: 'Email not verified. A new verification code has been sent to your email.',
+        message: 'Email not verified. A new verification code has been sent.',
         userId: user._id
       });
     }
@@ -210,13 +197,10 @@ export const login = async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'An error occurred during login. Please try again.',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    res.status(500);
+    throw new Error('Server error during login. Please try again.');
   }
-};
+});
 
 // @desc    Get current user profile
 // @route   GET /api/auth/me

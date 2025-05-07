@@ -1,13 +1,21 @@
 // Error handling middleware
 const errorHandler = (err, req, res, next) => {
-  console.error(err.stack);
+  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
   
-  // Check if the error has a specific status code
-  const statusCode = err.statusCode || 500;
-  
+  // Log error in development
+  if (process.env.NODE_ENV === 'development') {
+    console.error('Error:', {
+      message: err.message,
+      stack: err.stack,
+      path: req.path,
+      method: req.method
+    });
+  }
+
   res.status(statusCode).json({
-    error: err.message || 'Internal Server Error',
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    success: false,
+    message: err.message,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : null
   });
 };
 

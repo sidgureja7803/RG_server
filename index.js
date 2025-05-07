@@ -17,6 +17,7 @@ import routes from './routes/index.js';
 import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss-clean';
 import rateLimit from 'express-rate-limit';
+import mongoose from 'mongoose';
 
 // Load environment variables
 dotenv.config();
@@ -30,69 +31,121 @@ connectDatabase()
   .then(() => console.log('Database connected successfully'))
   .catch((err) => console.error('Database connection error:', err));
 
-// Initialize Socket.IO for real-time collaboration
-initializeSocketIO(httpServer);
-
-// Middleware
-app.use(cors({
-
-  origin: ['https://resumeforge-nine.vercel.app/', 'https://resumeforge-sidgureja7803s-projects.vercel.app/' ,'http://localhost:5173'],
-  credentials: true,  // Allow credentials (cookies, etc.)
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS',],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+// Security middleware
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }
 }));
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(morgan('dev'));
-app.use(helmet());
-app.use(compression());
-app.use(passport.initialize());
-app.use(rateLimiterMiddleware);
-
-// Sanitize data
 app.use(mongoSanitize());
-
-// Prevent XSS attacks
 app.use(xss());
 
-// Uploads directory
-app.use('/uploads', express.static('uploads'));
+// CORS configuration
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production'
+    ? ['https://resumeforge-nine.vercel.app', 'https://resumeforge-sidgureja7803s-projects.vercel.app']
+    : ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 600
+};
 
-// Get __dirname equivalent for ES modules
-const __filename = fileURLToPath(import.meta.url);
+// Handle OPTIONS requests early for CORS preflight
+app.options('*', cors(corsOptions));
+app.use(cors(corsOptions));
 
-const __dirname = path.dirname(__filename);
+// Body parser
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Serve static files from public directory
-app.use(express.static(path.join(__dirname, 'public')));
+// Request logging in development
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev'));
+}
 
-// Routes
-app.use('/api', routes);
-
-// Welcome route
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Welcome to the Resume Generator API',
-    version: '1.0.0',
-    documentation: '/api/docs'
-  });
-});
-
-// Apply error handler
-app.use(errorHandler);
+// Compression
+app.use(compression());
 
 // Rate limiting
-const limiter = rateLimit({
-  windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
-});
-app.use('/api', limiter);
+app.use(rateLimiterMiddleware);
 
+// Passport middleware
+app.use(passport.initialize());
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// API routes
+app.use('/api', routes);
+
+// Error handling
+app.use(errorHandler);
+
+// Handle 404
+app.use((req, res) => {
+  res.status(404).json({ message: 'Route not found' });
+});
+
+// Start server
 const PORT = process.env.PORT || 5000;
+let server;
 
-httpServer.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-});
+const startServer = async () => {
+  try {
+    // Connect to MongoDB
+    await connectDatabase();
+    
+    // Start HTTP server
+    server = httpServer.listen(PORT, () => {
+      console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+    });
+
+    // Initialize Socket.IO
+    initializeSocketIO(httpServer);
+
+    // Handle server errors
+    server.on('error', (error) => {
+      console.error('Server error:', error);
+      process.exit(1);
+    });
+
+    // Graceful shutdown
+    process.on('SIGTERM', gracefulShutdown);
+    process.on('SIGINT', gracefulShutdown);
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+const gracefulShutdown = async () => {
+  console.log('Received shutdown signal. Starting graceful shutdown...');
+  
+  try {
+    // Close HTTP server
+    if (server) {
+      await new Promise((resolve) => server.close(resolve));
+      console.log('HTTP server closed');
+    }
+
+    // Close database connection
+    if (mongoose.connection.readyState === 1) {
+      await mongoose.connection.close();
+      console.log('Database connection closed');
+    }
+
+    console.log('Graceful shutdown completed');
+    process.exit(0);
+  } catch (error) {
+    console.error('Error during shutdown:', error);
+    process.exit(1);
+  }
+};
+
+// Start the server
+startServer();
 
 export default app;

@@ -1,39 +1,40 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/user.model.js';
+import asyncHandler from 'express-async-handler';
 
 // Middleware to authenticate JWT token
-export const authenticate = async (req, res, next) => {
-  try {
-    // Get token from header
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    
-    if (!token) {
-      return res.status(401).json({ message: 'No token, authorization denied' });
-    }
+export const authenticate = asyncHandler(async (req, res, next) => {
+  let token;
 
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // Get user from database
-    const user = await User.findById(decoded.id).select('-password');
-    
-    if (!user) {
-      return res.status(401).json({ message: 'User not found' });
-    }
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      // Get token from header
+      token = req.headers.authorization.split(' ')[1];
 
-    // Add user to request
-    req.user = user;
-    next();
-  } catch (error) {
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ message: 'Invalid token' });
+      // Verify token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+
+      // Get user from token
+      req.user = await User.findById(decoded.id).select('-password');
+
+      if (!req.user) {
+        res.status(401);
+        throw new Error('User not found');
+      }
+
+      next();
+    } catch (error) {
+      console.error('Auth middleware error:', error);
+      res.status(401);
+      throw new Error('Not authorized');
     }
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ message: 'Token expired' });
-    }
-    return res.status(500).json({ message: 'Server Error' });
   }
-};
+
+  if (!token) {
+    res.status(401);
+    throw new Error('Not authorized, no token');
+  }
+});
 
 // Rename authenticate to authenticateToken for job routes
 export const authenticateToken = authenticate;
