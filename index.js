@@ -35,17 +35,11 @@ initializeSocketIO(httpServer);
 
 // Middleware
 app.use(cors({
-<<<<<<< HEAD
-  origin: process.env.CLIENT_URL || 'https://resumeforge-nine.vercel.app',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-=======
+
   origin: ['https://resumeforge-nine.vercel.app/', 'https://resumeforge-sidgureja7803s-projects.vercel.app/' ,'http://localhost:5173'],
   credentials: true,  // Allow credentials (cookies, etc.)
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS',],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
->>>>>>> 9615accebdd67fb9e6556248f163f9c9ac261bdf
 }));
 
 app.use(express.json());
